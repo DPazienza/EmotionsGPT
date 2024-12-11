@@ -1,0 +1,7 @@
+torch
+transformers
+huggingface_hub
+nltk
+datasets
+openai-whisper
+torch
