@@ -1,7 +1,7 @@
 import os
 import json
 import torch
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer
+from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
 from datasets import load_dataset
 import nltk
 from nltk.tokenize import word_tokenize
@@ -50,13 +50,12 @@ def load_emotion_model():
     print("Emotion model loaded successfully!")
     return emotion_pipeline
 
-# Step 4: Load GPT-2 Model for Response Generation
+# Step 4: Load DialoGPT Model for Response Generation
 def load_response_model():
-    print("\nLoading GPT-2 model for response generation...")
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-    model = GPT2LMHeadModel.from_pretrained("gpt2")
-    model.config.pad_token_id = tokenizer.eos_token_id  # Avoid attention mask errors
-    print("GPT-2 model loaded successfully!")
+    print("\nLoading DialoGPT model for response generation...")
+    tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
+    model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
+    print("DialoGPT model loaded successfully!")
     return model, tokenizer
 
 # Step 5: Load Whisper Model for Speech-to-Text
@@ -74,27 +73,16 @@ def classify_emotion(emotion_pipeline, text):
     return results
 
 # Step 7: Generate Chatbot Response and Maintain Context
-def generate_response(response_model, tokenizer, emotion_scores, user_input, context):
-    """Generate a response based on the detected emotion and maintain context."""
-    emotion = max(emotion_scores[0], key=lambda x: x['score'])['label']
-
+def generate_response(response_model, tokenizer, user_input, context):
+    """Generate a response based on the user's input and maintain context."""
     # Update context with the user's input
     context.append(f"User: {user_input}")
+    context_text = " \n".join(context[-5:])
 
-    # Define general prompts based on detected emotion
-    prompts = {
-        "joy": f"User expressed joy: '{user_input}'. Respond positively and encourage the conversation.",
-        "sadness": f"User said they are sad: '{user_input}'. Provide empathy and comfort.",
-        "anger": f"User expressed anger: '{user_input}'. Respond calmly and de-escalate the situation.",
-        "fear": f"User expressed worry or fear: '{user_input}'. Reassure them with supportive words.",
-        "surprise": f"User is surprised: '{user_input}'. Respond with enthusiasm and curiosity.",
-        "neutral": f"User's message seems neutral: '{user_input}'. Keep the conversation friendly and light."
-    }
+    # Encode the context
+    input_ids = tokenizer.encode(context_text + tokenizer.eos_token, return_tensors="pt")
 
-    # Generate a prompt combining context and emotion
-    prompt = "\n".join(context[-5:]) + f"\nBot: {prompts.get(emotion, 'Be empathetic and understanding.')}"
-    input_ids = tokenizer.encode(prompt, return_tensors="pt")
-
+    # Generate a response
     output = response_model.generate(
         input_ids,
         max_length=150,
@@ -107,8 +95,8 @@ def generate_response(response_model, tokenizer, emotion_scores, user_input, con
     )
     response = tokenizer.decode(output[0], skip_special_tokens=True)
 
-    # Update context with the bot's response
-    bot_response = response.split("Bot:")[-1].strip()
+    # Extract the bot's response and update the context
+    bot_response = response[len(context_text):].strip()
     context.append(f"Bot: {bot_response}")
     return bot_response
 
@@ -142,11 +130,10 @@ def main():
 
         # Classify emotion
         emotion_scores = classify_emotion(emotion_pipeline, user_input)
-
         print(f"Debug: Detected Emotion Scores - {emotion_scores}")
 
         # Generate response
-        response = generate_response(response_model, response_tokenizer, emotion_scores, user_input, context)
+        response = generate_response(response_model, response_tokenizer, user_input, context)
 
         print(f"Chatbot: {response}")
 
