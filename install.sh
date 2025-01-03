@@ -5,7 +5,7 @@
 python3 -m pip install --upgrade pip
 
 # Install required Python packages
-pip install -r requirements.txt
+pip install -r requirements.txt > install.txt
 
 # Download NLTK data
 python3 -c "import nltk; nltk.download('punkt')"
