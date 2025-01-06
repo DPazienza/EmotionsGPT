@@ -5,10 +5,6 @@ from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassifica
 from datasets import load_dataset
 import nltk
 from nltk.tokenize import word_tokenize
-import whisper
-import assemblyai as aai
-from elevenlabs.client import ElevenLabs
-from elevenlabs import stream
 import ollama
 
 class EmotionsClassifier:

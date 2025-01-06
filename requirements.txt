@@ -7,6 +7,3 @@ openai-whisper
 torch
 assemblyai
 ollama
-elevenlabs
-mpv
-portaudio

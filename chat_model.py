@@ -1,10 +1,10 @@
-from transformers import LlamaTokenizer, LlamaForCausalLM
-import torch  # noqa: F401
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
 class EmotionAwareChatModel:
-    def __init__(self, model_name="meta-llama/Llama-2-7b-chat-hf"):
+    def __init__(self, model_name="google/flan-t5-small"):
         # Carica il tokenizer e il modello
-        self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
-        self.model = LlamaForCausalLM.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         self.chat_history = ""  # Storia della chat
 
         # Aggiungi un token di padding se non esiste
@@ -35,7 +35,7 @@ class EmotionAwareChatModel:
         self.chat_history += f"User: {user_message}\n"
 
         # Tokenizza e genera la risposta
-        emotion_context = ", ".join([f"{e['label']}: {e['score']:.2f}" for e in emotions])
+        # emotion_context = ", ".join([f"{e['label']}: {e['score']:.2f}" for e in emotions])
         prompt = (
             f"You are a friendly and empathetic conversational AI. Your goal is to engage in a natural and supportive conversation" 
             f"with the user, adapting your responses to their emotional state. \n"
