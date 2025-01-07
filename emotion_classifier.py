@@ -18,6 +18,7 @@ class EmotionsClassifier:
         self.emotion_pipeline = self.load_emotion_model()
         self.lime_explainer = LimeTextExplainer(class_names=self.get_emotion_labels())
         self.shap_explainer = shap.Explainer(self.emotion_pipeline)
+    
     def preprocess_text(self, text):
         """Clean and preprocess text for emotion classification."""
         text = text.lower().strip()

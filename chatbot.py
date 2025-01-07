@@ -6,10 +6,6 @@ class EmotionsGPTChatbot:
         self.context = []
         self.emotion_classifier = EmotionsClassifier()
         self.chat_model = EmotionAwareChatModel()
-        self.full_transcript = [
-            {"role": "system", "content": "You are a language model called Llama 3 created by Meta. Adapt your responses based on the user's emotions detected in the conversation. Keep your answers concise and under 300 characters. Do not use bold or asterisks as this will be passed to a text-to-speech service."},
-        ]
-        self.last_message = None
 
     
     def start_conversation(self):
@@ -37,29 +33,25 @@ class EmotionsGPTChatbot:
                 print("Chatbot: Goodbye! Take care.")
                 break
 
-            # # Check if input is audio
-            # if user_input.startswith("audio:"):
-            #     audio_path = user_input.split(":", 1)[1].strip()
-            #     user_input = self.speech_model.transcribe(audio_path)["text"]
 
             # Classify emotion
             emotion_scores = self.emotion_classifier.classify_emotion(user_input)
-            print(f"Debug: Detected Emotion Scores - {emotion_scores}")
+            # print(emotion_scores)
 
-            # Explain predictions using LIME
-            lime_explanation = self.emotion_classifier.explain_predictions_lime(user_input)
-            print("\nLime Explanation for Predictions:")
-            for feature, weight in lime_explanation.as_list():
-                print(f"Feature: {feature}, Weight: {weight}")
+            # # Explain predictions using LIME
+            # lime_explanation = self.emotion_classifier.explain_predictions_lime(user_input)
+            # print("\nLime Explanation for Predictions:")
+            # for feature, weight in lime_explanation.as_list():
+            #     print(f"Feature: {feature}, Weight: {weight}")
 
-            # Explain predictions using SHAP
-            shap_explanation = self.emotion_classifier.explain_predictions_shap(user_input)
-            print("\nSHAP Explanation for Predictions:")
-            shap_values = shap_explanation[0].values
-            shap_values = shap_explanation[0].values
-            features = shap_explanation.data[0]
-            for feature, value in zip(features, shap_values):
-                print(f"Feature: {feature}, Weight: {value}")
+            # # Explain predictions using SHAP
+            # shap_explanation = self.emotion_classifier.explain_predictions_shap(user_input)
+            # print("\nSHAP Explanation for Predictions:")
+            # shap_values = shap_explanation[0].values
+            # shap_values = shap_explanation[0].values
+            # features = shap_explanation.data[0]
+            # for feature, value in zip(features, shap_values):
+            #     print(f"Feature: {feature}, Weight: {value}")
 
             # Generate response
             response =self.chat_model.generate_response(user_input, emotion_scores)
