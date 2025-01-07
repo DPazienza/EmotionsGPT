@@ -46,9 +46,23 @@ class EmotionsGPTChatbot:
             emotion_scores = self.emotion_classifier.classify_emotion(user_input)
             print(f"Debug: Detected Emotion Scores - {emotion_scores}")
 
+            # Explain predictions using LIME
+            lime_explanation = self.emotion_classifier.explain_predictions_lime(user_input)
+            print("\nLime Explanation for Predictions:")
+            for feature, weight in lime_explanation.as_list():
+                print(f"Feature: {feature}, Weight: {weight}")
+
+            # Explain predictions using SHAP
+            shap_explanation = self.emotion_classifier.explain_predictions_shap(user_input)
+            print("\nSHAP Explanation for Predictions:")
+            shap_values = shap_explanation[0].values
+            for i, label in enumerate(self.emotion_classifier.emotion_labels):
+                print(f"{label}: {shap_values[i]}")
+
             # Generate response
             response =self.chat_model.generate_response(user_input, emotion_scores)
             print(f"Chatbot: {response}")
+
 
 if __name__ == "__main__":
     chatbot = EmotionsGPTChatbot()

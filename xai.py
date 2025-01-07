@@ -1,23 +1,20 @@
 import os
 import json
 import torch
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
+from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 from datasets import load_dataset
 import nltk
 from nltk.tokenize import word_tokenize
-nltk.download('punkt')
-
-import lime
 from lime.lime_text import LimeTextExplainer
 import numpy as np
 
-import shap
+nltk.download('punkt')
 
-class EmotionsClassifier:
+class ExplainableEmotionsClassifier:
     def __init__(self):
         self.emotion_pipeline = self.load_emotion_model()
-        self.lime_explainer = LimeTextExplainer(class_names=self.get_emotion_labels())
-        self.shap_explainer = shap.Explainer(self.model)
+        self.explainer = LimeTextExplainer(class_names=self.get_emotion_labels())
+
     def preprocess_text(self, text):
         """Clean and preprocess text for emotion classification."""
         text = text.lower().strip()
@@ -25,7 +22,6 @@ class EmotionsClassifier:
         return " ".join(tokens)
 
     def load_emotion_model(self):
-        #print("\nLoading pre-trained BERT model for emotion classification...")
         model_name = "bhadresh-savani/bert-base-uncased-emotion"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSequenceClassification.from_pretrained(model_name)
@@ -38,14 +34,14 @@ class EmotionsClassifier:
         preprocessed_text = self.preprocess_text(text)
         results = self.emotion_pipeline(preprocessed_text)
         return results
-    
+
     def get_emotion_labels(self):
         """Retrieve emotion labels from the model's output."""
         sample_text = "I am happy"
         sample_result = self.classify_emotion(sample_text)
         return [emotion['label'] for emotion in sample_result[0]]
-    
-    def explain_predictions_lime(self, text, num_features=10):
+
+    def explain_predictions(self, text, num_features=10):
         """Use LIME to explain emotion predictions for the input text."""
         def predict_proba(texts):
             """Helper function to predict probabilities for LIME."""
@@ -53,34 +49,20 @@ class EmotionsClassifier:
             probabilities = np.array([[score['score'] for score in result[0]] for result in results])
             return probabilities
 
-        explanation = self.lime_explainer.explain_instance(text, predict_proba, num_features=num_features)
+        explanation = self.explainer.explain_instance(text, predict_proba, num_features=num_features)
         return explanation
-    
 
-    def explain_predictions_shap(self, text):
-        """Explain predictions using SHAP."""
-        preprocessed_text = self.preprocess_text(text)
-        shap_values = self.shap_explainer([preprocessed_text])
-        return shap_values
+if __name__ == "__main__":
+    classifier = ExplainableEmotionsClassifier()
 
-    # def download_datasets(self):
-    #     datasets_dir = "datasets"
-    #     os.makedirs(datasets_dir, exist_ok=True)
+    sample_text = "I am feeling great and excited!"
 
-    #     try:
-    #         print("\nLoading GoEmotions dataset...")
-    #         go_emotions = load_dataset("go_emotions")
-    #         print("GoEmotions dataset loaded successfully!")
-    #     except Exception as e:
-    #         print(f"Error loading GoEmotions: {e}")
-    #         raise
+    # Classify emotion
+    emotion_results = classifier.classify_emotion(sample_text)
+    print("Emotion Classification Results:", emotion_results)
 
-    #     try:
-    #         print("\nLoading DailyDialog dataset...")
-    #         daily_dialog = load_dataset("daily_dialog", trust_remote_code=True)
-    #         print("DailyDialog dataset loaded successfully!")
-    #     except Exception as e:
-    #         print(f"Error loading DailyDialog: {e}")
-    #         raise
-
-    #     return go_emotions, daily_dialog
+    # Explain predictions using LIME
+    lime_explanation = classifier.explain_predictions(sample_text)
+    print("\nExplanation for Predictions:")
+    for feature, weight in lime_explanation.as_list():
+        print(f"Feature: {feature}, Weight: {weight}")
