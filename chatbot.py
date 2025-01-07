@@ -56,8 +56,10 @@ class EmotionsGPTChatbot:
             shap_explanation = self.emotion_classifier.explain_predictions_shap(user_input)
             print("\nSHAP Explanation for Predictions:")
             shap_values = shap_explanation[0].values
-            for i, label in enumerate(self.emotion_classifier.emotion_labels):
-                print(f"{label}: {shap_values[i]}")
+            shap_values = shap_explanation[0].values
+            features = shap_explanation.data[0]
+            for feature, value in zip(features, shap_values):
+                print(f"Feature: {feature}, Weight: {value}")
 
             # Generate response
             response =self.chat_model.generate_response(user_input, emotion_scores)
