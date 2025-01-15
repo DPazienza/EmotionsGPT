@@ -1,160 +1,151 @@
 import torch
-import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments, DataCollatorWithPadding
 from datasets import Dataset
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+import pandas as pd
+import os
 
 # Configurazione
 MODEL_NAME = "bhadresh-savani/bert-base-uncased-emotion"
-SELECTED_CLASSES = [8, 20, 24, 12, 15, 22]  # Emozioni principali come numeri (sadness, joy, love, anger, fear, surprise)
-NEW_NUM_LABELS = len(SELECTED_CLASSES)
+FINE_TUNED_LABELS = ["sadness", "joy", "love", "anger", "fear", "surprise", "neutral"]
+NUM_FINE_TUNED_LABELS = len(FINE_TUNED_LABELS)
 
-# Mappa le etichette alle classi 0-6
-LABEL_MAPPING = {label: idx for idx, label in enumerate(SELECTED_CLASSES)}
+# Caricamento del dataset
+def load_and_filter_dataset(file_path, labels):
+    print("Caricamento del dataset GoEmotions...")
+    df = pd.read_csv(file_path)
 
-# Caricamento del dataset da CSV
-print("Caricamento del dataset GoEmotions dai file CSV...")
-train_df = pd.read_csv("go_emotions_train.csv")
-validation_df = pd.read_csv("go_emotions_validation.csv")
-test_df = pd.read_csv("go_emotions_test.csv")
+    # Filtraggio delle etichette selezionate
+    print("Filtraggio delle etichette selezionate...")
+    df = df[["text"] + labels]
 
-# Filtra e rimappa le etichette
-print("Filtraggio e rimappatura delle etichette...")
-def filter_and_remap(df):
-    filtered_rows = []
-    for _, row in df.iterrows():
-        try:
-            labels = [int(label) for label in row['labels'].strip('[]').split()]  # Splitta usando spazi
-            valid_labels = [LABEL_MAPPING[label] for label in labels if label in LABEL_MAPPING]
-            if valid_labels:
-                row['labels'] = valid_labels[0]  # Prendi la prima etichetta valida
-                filtered_rows.append(row)
-        except Exception as e:
-            print(f"Errore nel processare la riga: {row['labels']} - {e}")
-    return pd.DataFrame(filtered_rows)
+    # Rimozione dei record con tutte le emozioni pari a 0
+    print("Rimozione dei record con emozioni tutte pari a 0...")
+    df = df[df[labels].sum(axis=1) > 0]
 
-train_df = filter_and_remap(train_df)
-validation_df = filter_and_remap(validation_df)
-test_df = filter_and_remap(test_df)
+    # Stampa del numero totale di record e conteggio per emozione
+    print(f"Numero totale di record nel dataset filtrato: {len(df)}")
+    print("Numero di record per emozione:")
+    for label in labels:
+        count = df[label].sum()
+        print(f"  {label}: {int(count)}")
 
-# Converte i DataFrame in Dataset
-train_dataset = Dataset.from_pandas(train_df)
-validation_dataset = Dataset.from_pandas(validation_df)
-test_dataset = Dataset.from_pandas(test_df)
+    # Conversione delle etichette in una lista binaria
+    print("Preparazione delle etichette binarie...")
+    df["labels"] = df.apply(lambda row: [row[label] for label in labels], axis=1)
+    return Dataset.from_pandas(df)
+
+# Dataset
+train_validation_dataset = load_and_filter_dataset("go_emotions_dataset.csv", FINE_TUNED_LABELS)
+dataset = train_validation_dataset.train_test_split(test_size=0.2, seed=42)
+train_dataset = dataset["train"]
+validation_dataset = dataset["test"]
 
 # Tokenizer
 print("Caricamento del tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-# Preprocessing e correzione delle etichette
+# Tokenizzazione
 def preprocess_data(examples):
-    # Tokenizza con padding e truncation
     tokenized = tokenizer(examples["text"], truncation=True, padding=True, max_length=128)
-    tokenized["labels"] = torch.tensor(examples["labels"], dtype=torch.long)  # Converti le etichette in tensori di tipo long
+    # Converte le etichette in tensori float con il formato corretto
+    labels = torch.tensor(examples["labels"], dtype=torch.float)
+    tokenized["labels"] = labels
     return tokenized
 
 print("Preprocessamento del dataset...")
 train_dataset = train_dataset.map(preprocess_data, batched=True)
 validation_dataset = validation_dataset.map(preprocess_data, batched=True)
-test_dataset = test_dataset.map(preprocess_data, batched=True)
-
-# Imposta il formato corretto per il dataset
 train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 validation_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
-test_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 
-# DataCollator per batch dinamici
+# DataCollator per il padding dinamico
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
-
-# Modello
-print("Caricamento del modello pre-addestrato...")
-model = AutoModelForSequenceClassification.from_pretrained(
-    MODEL_NAME,
-    num_labels=NEW_NUM_LABELS,
-    ignore_mismatched_sizes=True
-)
 
 # Configurazione del Trainer
 training_args = TrainingArguments(
-    output_dir="./temp_results",  # Directory temporanea per evitare errori
-    evaluation_strategy="epoch",  # Valutazione ad ogni epoca
-    save_strategy="no",  # Non salvare i checkpoint
+    output_dir="./goemotions_results",
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
     learning_rate=2e-5,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
-    num_train_epochs=30,
+    num_train_epochs=5,
     weight_decay=0.01,
-    load_best_model_at_end=False,
-    report_to="none"  # Disabilita completamente i log
+    logging_dir="./logs",
+    logging_steps=10,
+    save_total_limit=2,
+    load_best_model_at_end=True,
+    report_to="none"
 )
 
-# Funzione di valutazione
-print("Inizio addestramento...")
-def compute_metrics(pred):
-    logits, labels = pred
-    predictions = torch.argmax(torch.tensor(logits), dim=-1)
-    probabilities = torch.nn.functional.softmax(torch.tensor(logits), dim=-1)
+# Classe CustomTrainer
+class CustomTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        labels = inputs.pop("labels").to(torch.float32)  # Converti le etichette in float32
+        outputs = model(**inputs)
+        logits = outputs.logits
 
-    # Verifica che ogni probabilità > 0.5 corrisponda a una label valida
-    correct_predictions = 0
-    total_predictions = 0
-    for i, probs in enumerate(probabilities):
-        predicted_labels = (probs > 0.5).nonzero(as_tuple=True)[0].tolist()
-        if set(predicted_labels).issubset(set([labels[i]])):
-            correct_predictions += 1
-        total_predictions += 1
+        # Controlla che logits e labels abbiano la stessa forma
+        assert logits.shape == labels.shape, f"Mismatch: logits {logits.shape}, labels {labels.shape}"
 
-    precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average="weighted")
-    accuracy = accuracy_score(labels, predictions)
-    prob_accuracy = correct_predictions / total_predictions
+        loss_fct = torch.nn.BCEWithLogitsLoss()
+        loss = loss_fct(logits, labels)
+        return (loss, outputs) if return_outputs else loss
 
-    return {"accuracy": accuracy, "f1": f1, "precision": precision, "recall": recall, "prob_accuracy": prob_accuracy}
+# Verifica se esiste già il modello fine-tuned
+if os.path.exists("./fine_tuned_go_emotions"):
+    print("Modello fine-tuned trovato. Valutazione in corso...")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        "./fine_tuned_go_emotions",
+        num_labels=NUM_FINE_TUNED_LABELS,
+        problem_type="multi_label_classification"
+    ).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_dataset,
-    eval_dataset=validation_dataset,
-    tokenizer=tokenizer,
-    data_collator=data_collator,
-    compute_metrics=compute_metrics,
-)
+    trainer = CustomTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=validation_dataset,
+        tokenizer=tokenizer,
+        data_collator=data_collator
+    )
 
-# Addestramento
-trainer.train()
+    metrics = trainer.evaluate()
 
-# Valutazione
-print("Valutazione sul set di test...")
-results = trainer.evaluate(eval_dataset=test_dataset)
-print("Risultati:", results)
+    # Calcolo di precision, recall e F1-score
+    from sklearn.metrics import precision_recall_fscore_support
 
-# Predizione con probabilità
-print("Esempi di predizione con probabilità...")
-def predict_with_probabilities(texts):
-    encoded_inputs = tokenizer(texts, truncation=True, padding=True, return_tensors="pt")
-    outputs = model(**encoded_inputs)
-    probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1)
-    return probabilities
+    # Ottieni i logit e le etichette previste
+    predictions, labels, _ = trainer.predict(validation_dataset)
+    predictions = torch.sigmoid(torch.tensor(predictions)) > 0.5  # Converti logit in predizioni binarie
 
-example_texts = [
-    "I am so happy today!",
-    "This is the worst day ever.",
-    "I feel scared about the future.",
-    "I am furious about what happened!"
-]
+    # Calcolo delle metriche
+    precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='micro')
+    metrics["precision"] = precision
+    metrics["recall"] = recall
+    metrics["f1"] = f1
+    print("Risultati della valutazione:")
+    print(metrics)
+else:
+    print("Inizio fine-tuning...")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME,
+        num_labels=NUM_FINE_TUNED_LABELS,
+        problem_type="multi_label_classification",
+        ignore_mismatched_sizes=True
+    ).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
-probabilities = predict_with_probabilities(example_texts)
-for i, text in enumerate(example_texts):
-    print(f"Text: {text}")
-    for j, prob in enumerate(probabilities[i]):
-        print(f"  {SELECTED_CLASSES[j]}: {prob:.2f}")
-    if torch.any(probabilities[i] > 0.5):
-        print("  Predicted emotion(s) match labels with >50% probability")
-    else:
-        print("  No emotion predicted with >50% probability")
+    trainer = CustomTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=validation_dataset,
+        tokenizer=tokenizer,
+        data_collator=data_collator
+    )
+    trainer.train()
 
-# Salvataggio del modello fine-tuned
-print("Salvataggio del modello fine-tuned...")
-trainer.save_model("./fine_tuned_go_emotions")
-tokenizer.save_pretrained("./fine_tuned_go_emotions")
-print("Fine-tuning completato!")
+    # Salvataggio del modello fine-tuned
+    print("Salvataggio del modello fine-tuned...")
+    trainer.save_model("./fine_tuned_go_emotions")
+    tokenizer.save_pretrained("./fine_tuned_go_emotions")

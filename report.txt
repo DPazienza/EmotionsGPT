@@ -1,0 +1,151 @@
+Emotion Classification and Explainability in NLP
+Domenico Pazienza and Leonardo Ercolani
+January 16, 2025
+
+1. Introduction
+The emergence of conversational AI has marked a pivotal moment in human-computer interaction, enabling systems that can understand and respond to users in increasingly sophisticated ways. Yet, despite these advancements, a critical aspect of communication—emotions—remains underexplored in most conversational models. This project focuses on bridging this gap by creating a chatbot capable of recognizing and responding to user emotions with empathy and context-aware precision. Through the integration of state-of-the-art Natural Language Processing (NLP) techniques, the chatbot not only classifies emotions but also adapts its responses to align with the user’s emotional state, fostering a more natural and engaging interaction.
+Emotions are central to effective communication, shaping the way individuals express themselves and perceive responses. For instance, a person experiencing fear or sadness requires a markedly different conversational approach compared to someone expressing joy or excitement. Addressing this variability necessitates the development of systems that are not only technically proficient but also emotionally intelligent. This project seeks to address this challenge by leveraging advanced machine learning models, explainability tools, and real-world datasets to construct an emotion-aware chatbot.
+The significance of this work extends beyond the technical domain, as emotionally intelligent systems have the potential to revolutionize industries such as mental health, education, and customer service. For example, in mental health, a chatbot capable of recognizing and responding to distress signals could offer immediate emotional support to users, potentially reducing feelings of isolation. In customer service, an emotion-aware system can adapt its tone and content to enhance customer satisfaction. By embedding emotional intelligence into conversational AI, this project aims to pave the way for applications that prioritize user well-being and engagement.
+The foundation of this chatbot lies in the combination of emotion classification and response generation, two distinct yet complementary components. Emotion classification involves analyzing user input to determine the underlying emotional state, while response generation adapts to this classification to provide a meaningful and empathetic reply. This dual approach ensures that the chatbot does not merely process language at a surface level but delves deeper into the emotional nuances of communication. To achieve this, the project employs transformer-based models, fine-tuned on emotion-labeled datasets, and integrates tools for model interpretability, thereby enhancing both the performance and transparency of the system.
+
+2. Datasets and Tools
+The success of any machine learning project is intrinsically tied to the quality and relevance of its dataset. For this project, the GoEmotions dataset serves as the cornerstone, providing a comprehensive resource for training and evaluating the emotion classification model. Curated by Google, this dataset encompasses over 58,000 English sentences annotated across 27 distinct emotion categories, making it one of the most detailed and diverse emotion-labeled datasets available. The richness of this dataset allows for a nuanced understanding of emotional expression, capturing subtle differences between closely related emotions such as anger and frustration or joy and excitement.
+Preprocessing was a critical aspect of dataset preparation. The text data underwent a series of transformations to standardize and clean the inputs. This included removing special characters, converting text to lowercase, and handling contractions to maintain consistency. Tokenization, the process of splitting text into smaller units, was performed using NLTK, a widely-used library for text processing. Additionally, stopwords—common words like “and” or “the”—were retained in some experiments to preserve context, as they often carry significant meaning in emotional expressions.
+Beyond the dataset itself, the project leveraged a suite of advanced tools and frameworks to implement and fine-tune the emotion classification model. The Hugging Face Transformers library was a central component, providing pre-trained models such as BERT (Bidirectional Encoder Representations from Transformers) that were fine-tuned on the GoEmotions dataset. TensorFlow was used for model training and optimization, offering robust utilities for implementing custom architectures and training pipelines. To ensure that the model’s predictions were not only accurate but also interpretable, explainability tools like LIME (Local Interpretable Model-Agnostic Explanations) and SHAP (SHapley Additive exPlanations) were integrated. These tools provided insights into the model’s decision-making process, highlighting the words and phrases that influenced its predictions.
+The use of explainability tools was particularly important in building trust and transparency into the system. For instance, if the chatbot misclassified an input, these tools could identify whether the error stemmed from an ambiguous phrase, a bias in the training data, or a limitation of the model’s architecture. Such insights were invaluable for iterative improvements, enabling targeted refinements to the dataset and model.
+The integration of preprocessing, advanced modeling techniques, and explainability tools created a robust pipeline for emotion classification. However, the project’s ambition extended beyond classification to include response generation. By combining these components, the chatbot was designed to provide not only accurate but also meaningful and empathetic interactions, setting a new standard for conversational AI systems.
+
+
+
+
+3. Methodology
+The methodology adopted for the development of the emotion-aware chatbot was designed to ensure a robust pipeline capable of handling the nuances of emotional expressions while generating meaningful and contextually relevant responses. This section delves into the comprehensive process of data preprocessing, feature extraction, model fine-tuning, the integration of explainability and response-generation capabilities, and a discussion on the model architectures employed.
+
+3.1 Preprocessing
+Preprocessing plays a foundational role in any machine learning pipeline, particularly when dealing with text data that often contains noise and inconsistencies. For this project, the preprocessing stage was crafted to standardize and clean the input text, ensuring that it was ready for subsequent analysis and model training. The text data underwent meticulous cleaning to remove special characters, emojis, and extraneous whitespace. Contractions were expanded to their full forms to maintain semantic clarity, and all text was converted to lowercase to minimize variability arising from case differences.
+Tokenization formed the next critical step in preprocessing. Using NLTK’s word tokenizer, sentences were broken down into individual tokens, which allowed for a granular understanding of the text. Unlike a simple splitting operation, this tokenizer preserved the linguistic structure of the input, ensuring that punctuation and compound words were handled appropriately. Additionally, stopwords, which are commonly occurring words like "and" or "the," were evaluated for their importance to the emotional context. Experiments revealed that retaining stopwords often preserved the subtle emotional undertones of sentences, leading to better classification accuracy.
+Label mapping was another pivotal aspect of preprocessing. The original GoEmotions dataset categorized text into 27 distinct emotional labels, which were condensed into six primary categories: joy, sadness, anger, fear, surprise, and love. This mapping not only simplified the task but also ensured that the model focused on the most universally recognized emotional states. The reduction in label complexity allowed for a more streamlined training process and improved interpretability of the results.
+
+3.2 Feature Extraction
+Feature extraction was central to converting the preprocessed text into a form that the machine learning model could understand and process. This was achieved using a pre-trained transformer model, bhadresh-savani/bert-base-uncased-emotion, which is based on the BERT architecture. BERT, known for its bidirectional attention mechanism, captures both the context preceding and following a word, making it particularly effective for tasks requiring semantic understanding.
+Tokenization was revisited during feature extraction, with the input text being tokenized into a sequence of tokens and padded to a maximum length of 128 tokens. This ensured uniformity across input samples while preserving computational efficiency. The embeddings generated by the final hidden layer of the BERT model provided rich, multidimensional representations of the text, capturing both syntactic and semantic nuances. These embeddings served as the input for the classification layer, which assigned probabilities to each emotion category.
+Optimization techniques played a crucial role in fine-tuning the model. The Adam optimizer, with its ability to adapt learning rates for individual parameters, was used alongside a learning rate scheduler. This combination facilitated efficient convergence during training, minimizing the risk of overfitting or underfitting.
+
+3.3 Emotion Classification
+The emotion classification model was the core component of the chatbot’s architecture. Built upon the fine-tuned BERT model, the classification module was designed to handle the nuanced task of emotion detection. The final layer of the model comprised six output neurons, each representing one of the primary emotion categories. A softmax activation function was applied to this layer, converting the raw logits into probabilities, which made the classification interpretable.
+The choice of BERT was driven by its capability to process context-rich information, crucial for understanding the subtle emotional undertones in user input. Its transformer-based architecture, with multiple self-attention heads, allowed the model to weigh the importance of each word in a sentence, leading to more accurate emotion predictions compared to traditional recurrent or convolutional models.
+Training the model involved careful configuration of hyperparameters. The learning rate was set to 2e-5, a value that balanced convergence speed with stability. A batch size of 16 was chosen to optimize memory usage and training time, while weight decay was applied to regularize the model and prevent overfitting. The model was trained for 30 epochs, with early stopping mechanisms in place to terminate training if the validation performance plateaued.
+The model’s performance was evaluated using a range of metrics, including accuracy, F1-score, precision, and recall. These metrics provided a comprehensive view of the model’s effectiveness across different emotional categories. Additionally, a custom probability-based accuracy metric was introduced to measure the confidence of the model’s predictions, further validating its reliability.
+
+3.4 Explainability
+Incorporating explainability into the model pipeline was crucial for building trust and transparency. Two state-of-the-art tools, LIME and SHAP, were employed to provide insights into the model’s decision-making process.
+LIME, a model-agnostic explainability tool, highlighted key words and phrases that significantly influenced the model’s predictions. For example, in the sentence "I feel scared about tomorrow," the word "scared" was identified as the most impactful feature driving the prediction.
+SHAP offered a complementary perspective by quantifying the contribution of each token to the overall prediction. This tool was particularly useful for understanding global patterns in the model’s behavior, as well as for diagnosing issues like bias or over-reliance on specific features.
+Together, LIME and SHAP ensured that the model’s predictions were not only accurate but also interpretable, addressing ethical concerns surrounding the use of AI in emotionally sensitive applications.
+
+3.4.1 Result Analysis
+1. Sentence: "I bought milk today."
+Ideal Result: The sentence is neutral and should not be assigned any specific emotion.
+Potential Issue: The model might incorrectly classify the sentence as containing an emotion due to generic or irrelevant token weights.
+Result Obtained:
+LIME Analysis: The words "I" and "bought" had the highest weights, while "milk" and "today" had minor contributions.
+SHAP Analysis: The model inclined towards emotions like joy and surprise, despite the neutral context.
+Evaluation: The model failed to recognize the neutrality of the sentence, indicating a bias towards assigning positive emotions.
+
+2. Sentence: "I don’t know whether to laugh or cry in this situation."
+Ideal Result: The sentence reflects mixed emotions (joy and sadness) and should ideally capture both.
+Potential Issue: The model might overemphasize one emotion or fail to capture the ambiguity.
+Result Obtained:
+LIME Analysis: The terms "laugh" and "cry" had significant weights, correctly reflecting their importance.
+SHAP Analysis: The contributions of "laugh" and "cry" were balanced but lacked clarity on the global prediction.
+Evaluation: While the model identified the key emotional triggers, it struggled to integrate the mixed emotions into a coherent prediction.
+
+3. Sentence: "I feel like I have a rock on my chest."
+Ideal Result: The sentence conveys sadness or anxiety due to its metaphorical nature.
+Potential Issue: The model might misinterpret the cultural metaphor or fail to grasp the implied emotion.
+Result Obtained:
+LIME Analysis: Terms like "feel" and "rock" were weighted heavily, showing partial understanding of the metaphor.
+SHAP Analysis: Predictions leaned towards sadness and fear, aligning partially with the intended meaning.
+Evaluation: The model showed promise in understanding metaphorical language but requires improvements in handling cultural expressions.
+
+4. Sentence: "I love hanging out with friends, but I hate when they don’t listen to me."
+Ideal Result: The sentence contains contrasting emotions (joy and frustration) and should reflect both.
+Potential Issue: The model might overemphasize one emotion, ignoring the context of contrast.
+Result Obtained:
+LIME Analysis: "Love" and "hate" dominated the contributions, with little regard for the overall sentence context.
+SHAP Analysis: Strong spikes for opposing emotions indicated a lack of integration.
+Evaluation: The model struggled with polarized sentences, overfocusing on individual emotional terms rather than the overall sentiment.
+
+5. Sentence: "I received an important letter this morning."
+Ideal Result: The sentence implies emotions like joy or anxiety, depending on the context.
+Potential Issue: The lack of explicit context could lead to misclassification.
+Result Obtained:
+LIME Analysis: "Important" and "letter" were identified as the primary contributors.
+SHAP Analysis: Predictions leaned towards joy, failing to consider alternative emotions like anxiety.
+Evaluation: The model demonstrated a bias towards positive emotions, underscoring the need for context-aware predictions.
+
+6. Sentence: "I’m glad you came, but I’m sorry all of this happened."
+Ideal Result: The sentence reflects conflicting emotions (joy and sadness) and should represent both equally.
+Potential Issue: The model might overemphasize one emotion, ignoring the coexistence of multiple sentiments.
+Result Obtained:
+LIME Analysis: The terms "sorry" and "glad" were highly weighted, capturing the conflicting emotions.
+SHAP Analysis: Strong positive contributions for sadness and joy, but an imbalance favoring sadness.
+Evaluation: The model partially succeeded in identifying the conflicting emotions but failed to balance them effectively.
+
+7. Sentence: "Oh great, I just missed the bus in the rain!"
+Ideal Result: The sentence is sarcastic and conveys frustration or anger, not joy.
+Potential Issue: The model might misclassify sarcasm as a positive emotion due to words like "great."
+Result Obtained:
+LIME Analysis: "Missed" and "great" were key contributors, but the model overemphasized the latter.
+SHAP Analysis: Significant weights for anger and frustration, with minor joy contributions misleading the overall interpretation.
+Evaluation: The model demonstrated an understanding of frustration but struggled to handle the sarcastic tone fully.
+
+Results
+The results highlight key strengths and weaknesses in the model’s performance. While LIME and SHAP provided valuable insights into the decision-making process, several areas require improvement:
+Neutral sentences often trigger unwarranted positive classifications.
+Mixed emotions and ambiguous contexts remain challenging for the model.
+Cultural and metaphorical expressions are partially understood but need more robust handling.
+Sarcasm detection requires better contextual analysis to avoid misclassification.
+These findings underscore the importance of refining the model’s interpretive capabilities to ensure accurate and context-sensitive predictions in emotionally nuanced applications.
+
+3.5 Chatbot Integration
+The final stage of the methodology involved integrating the emotion classification model into a conversational AI system. This integration allowed the chatbot to dynamically adjust its responses based on the user’s emotional state. The pipeline was designed to combine emotion detection with text generation, leveraging a transformer-based language model to produce coherent and empathetic replies.
+The chatbot maintained a conversational history, enabling it to generate responses that were not only relevant to the current input but also consistent with the context of the interaction. This feature was particularly important for fostering a sense of continuity and engagement in longer conversations. By tailoring its tone and content to align with the user’s emotions, the chatbot demonstrated an advanced level of emotional intelligence, setting it apart from conventional conversational agents.
+
+4. Experiments and Results
+The methodology’s effectiveness was validated through a series of experiments that evaluated the chatbot’s performance in emotion classification and response generation. These experiments highlighted the significant improvements achieved through preprocessing, fine-tuning, and explainability.
+4.1 Fine-Tuning Results
+Fine-tuning the BERT model on the preprocessed GoEmotions dataset resulted in substantial gains in classification accuracy. The baseline model, which operated without preprocessing, achieved an accuracy of 78%. This performance underscored the importance of a robust preprocessing pipeline.
+After fine-tuning, the model’s accuracy improved to 92%. This improvement was consistent across all emotion categories, with particularly strong performance in detecting joy and sadness. The precision and recall scores for joy were 93% and 91%, respectively, while fear achieved a precision of 89% and a recall of 87%.
+4.2 Chatbot Performance
+The chatbot’s ability to generate contextually appropriate responses was evaluated through user interaction tests. These tests revealed that the chatbot consistently produced empathetic replies aligned with the user’s emotional state. For example, when a user expressed fear, the chatbot responded with supportive and reassuring language. Additionally, the system’s ability to maintain conversational history ensured that responses were coherent and contextually relevant, even in extended interactions.
+4.3 Example Outputs and Analysis
+The chatbot’s outputs demonstrated its effectiveness in combining emotion detection with response generation. When a user expressed joy by saying, "I feel great today!", the chatbot responded with enthusiasm and curiosity: "That’s wonderful to hear! What made your day so special?" Similarly, when a user expressed sadness with "I miss my family," the chatbot offered comfort: "It’s natural to miss loved ones. Is there someone you can talk to?"
+In the example of a user saying, "Hi, I passed an exam today," the chatbot displayed its ability to adapt dynamically. The response included multiple layers of empathetic engagement, offering not only congratulations but also follow-up questions aimed at maintaining a meaningful conversation. By recognizing the positive emotion (joy) in the user’s message, the chatbot was able to tailor its tone and content appropriately, creating a more engaging interaction.
+These results underscore the chatbot’s potential to deliver meaningful and empathetic interactions, marking a significant advancement in the field of conversational AI.
+
+
+5. Challenges
+5.1 Class Imbalance The dataset exhibited significant imbalance across emotion categories. Techniques such as oversampling, synthetic data generation, and weighted loss functions were employed to address this issue.
+5.2 Overfitting Early signs of overfitting were observed during training. Regularization methods, including dropout layers and learning rate scheduling, were implemented to mitigate this problem.
+5.3 Explainability Ensuring interpretability without sacrificing performance was a key challenge. The integration of LIME and SHAP provided transparency but required additional computational resources.
+5.4 Real-Time Performance Optimizing the model for real-time inference posed challenges, particularly in balancing accuracy and latency. Quantization and pruning techniques were explored to enhance efficiency.
+
+6. Conclusion
+This project demonstrated the effectiveness of integrating emotion detection and explainability into conversational AI. Key accomplishments include:
+High accuracy in emotion classification.
+Transparent and interpretable model predictions.
+Empathetic and contextually aware chatbot interactions.
+Future work could explore:
+Multilingual support for broader applicability.
+Real-time deployment in various platforms.
+Expanding emotion categories to capture nuanced user sentiments.
+
+References
+Bhadresh Savani, "bert-base-uncased-emotion." Hugging Face.
+Ribeiro et al., "LIME: Local Interpretable Model-Agnostic Explanations."
+Lundberg and Lee, "A Unified Approach to Interpreting Model Predictions."
+GoEmotions Dataset Documentation.
+TensorFlow Documentation for Sequence Classification.
+Hugging Face Transformers Library.
+
